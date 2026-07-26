@@ -8,6 +8,14 @@ on:
       - 'tools/mel_recovery.py'
       - 'requirements.txt'
       - '.github/workflows/mel-recovery.yml'
+      - '.github/mel-recovery-run.txt'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'tools/mel_recovery.py'
+      - 'requirements.txt'
+      - '.github/workflows/mel-recovery.yml'
+      - '.github/mel-recovery-run.txt'
 
 permissions:
   contents: write
@@ -32,7 +40,12 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Run full recovery collector
-        run: python tools/mel_recovery.py
+        run: python tools/mel_recovery.py 2>&1 | tee mel-recovery-run.log
+      - name: Preserve run log
+        if: always()
+        run: |
+          mkdir -p mel-recovery-output
+          cp mel-recovery-run.log mel-recovery-output/run.log 2>/dev/null || true
       - name: Remove bulky raw indexes before persistence
         if: always()
         run: rm -rf mel-recovery-output/raw || true
@@ -53,7 +66,7 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
       - name: Persist evidence to results branch
-        if: always()
+        if: always() && github.event_name != 'pull_request'
         run: |
           if [ ! -d mel-recovery-output ]; then exit 0; fi
           git config user.name 'mel-recovery-bot'
