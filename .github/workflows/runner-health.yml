@@ -1,0 +1,17 @@
+name: Runner health check
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [master]
+    paths:
+      - '.github/runner-health-trigger.txt'
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm runner starts
+        run: |
+          echo "RUNNER_OK"
+          python3 --version
