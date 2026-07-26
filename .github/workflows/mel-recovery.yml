@@ -10,27 +10,32 @@ on:
       - '.github/workflows/mel-recovery.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   recover:
     runs-on: ubuntu-latest
     timeout-minutes: 330
     env:
-      MAX_LIVE_PAGES: '1600'
-      MAX_ARCHIVE_PAGES: '1300'
-      MAX_CC_PAGES: '650'
-      MAX_CANDIDATES: '2200'
-      MAX_RECOVERED_BYTES: '500000000'
+      MAX_LIVE_PAGES: '1800'
+      MAX_ARCHIVE_PAGES: '1500'
+      MAX_CC_PAGES: '750'
+      MAX_CANDIDATES: '2600'
+      MAX_RECOVERED_BYTES: '400000000'
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Run recovery collector
+      - name: Run full recovery collector
         run: python tools/mel_recovery.py
+      - name: Remove bulky raw indexes before persistence
+        if: always()
+        run: rm -rf mel-recovery-output/raw || true
       - name: Pack evidence
         if: always()
         run: |
@@ -45,5 +50,15 @@ jobs:
           path: |
             mel-recovery-output/
             mel-recovery-output.tar.gz
-          retention-days: 14
+          retention-days: 30
           if-no-files-found: warn
+      - name: Persist evidence to results branch
+        if: always()
+        run: |
+          if [ ! -d mel-recovery-output ]; then exit 0; fi
+          git config user.name 'mel-recovery-bot'
+          git config user.email 'mel-recovery-bot@users.noreply.github.com'
+          git checkout -B mel-recovery-results
+          git add -f mel-recovery-output
+          git commit -m "Update complete Melborda recovery evidence" || true
+          git push --force origin mel-recovery-results
