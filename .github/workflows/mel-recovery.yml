@@ -12,8 +12,6 @@ on:
 permissions:
   contents: read
 
-tasks:
-
 jobs:
   recover:
     runs-on: ubuntu-latest
